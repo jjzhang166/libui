@@ -5,6 +5,7 @@ include_directories(.. . ../common)
 add_library(libui-unix OBJECT
 	alloc.c
 	area.c
+	areaeventhandler.c
 	box.c
 	button.c
 	checkbox.c
@@ -27,6 +28,7 @@ add_library(libui-unix OBJECT
 	main.c
 	menu.c
 	multilineentry.c
+	openglarea.c
 	progressbar.c
 	radiobuttons.c
 	separator.c

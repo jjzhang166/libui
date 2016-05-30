@@ -5,6 +5,7 @@ CFILES += \
 	common/control.c \
 	common/debug.c \
 	common/matrix.c \
+	common/opengl.c \
 	common/shouldquit.c \
 	common/userbugs.c
 

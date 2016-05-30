@@ -17,6 +17,22 @@
 #define gtkXPadding 12
 #define gtkYPadding 6
 
+// areaeventhandler.c
+struct areaEventHandler {
+	clickCounter cc;
+	uiAreaEventHandler *eh;
+};
+typedef struct areaEventHandler areaEventHandler;
+
+void loadAreaSize(GtkWidget *w, double *width, double *height, int providesize);
+gboolean areaEventHandler_button_press_event(areaEventHandler *eh, uiControl *c, GtkWidget *w, GdkEventButton *e, int providesize);
+gboolean areaEventHandler_button_release_event(areaEventHandler *eh, uiControl *c, GtkWidget *w, GdkEventButton *e, int providesize);
+gboolean areaEventHandler_motion_notify_event(areaEventHandler *eh, uiControl *c, GtkWidget *w, GdkEventMotion *e, int providesize);
+gboolean areaEventHandler_enter_notify_event(areaEventHandler *eh, uiControl *c, GtkWidget *w, GdkEventCrossing *e);
+gboolean areaEventHandler_leave_notify_event(areaEventHandler *eh, uiControl *c, GtkWidget *w, GdkEventCrossing *e);
+gboolean areaEventHandler_key_press_event(areaEventHandler *eh, uiControl *c, GtkWidget *w, GdkEventKey *e);
+gboolean areaEventHandler_key_release_event(areaEventHandler *eh, uiControl *c, GtkWidget *w, GdkEventKey *e);
+
 // menu.c
 extern GtkWidget *makeMenubar(uiWindow *);
 extern void freeMenubar(GtkWidget *);

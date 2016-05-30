@@ -248,6 +248,7 @@ _UI_EXTERN void uiMsgBox(uiWindow *parent, const char *title, const char *descri
 _UI_EXTERN void uiMsgBoxError(uiWindow *parent, const char *title, const char *description);
 
 typedef struct uiArea uiArea;
+typedef struct uiAreaEventHandler uiAreaEventHandler;
 typedef struct uiAreaHandler uiAreaHandler;
 typedef struct uiAreaDrawParams uiAreaDrawParams;
 typedef struct uiAreaMouseEvent uiAreaMouseEvent;
@@ -255,15 +256,19 @@ typedef struct uiAreaKeyEvent uiAreaKeyEvent;
 
 typedef struct uiDrawContext uiDrawContext;
 
-struct uiAreaHandler {
-	void (*Draw)(uiAreaHandler *, uiArea *, uiAreaDrawParams *);
-	// TODO document that resizes cause a full redraw for non-scrolling areas; implementation-defined for scrolling areas
-	void (*MouseEvent)(uiAreaHandler *, uiArea *, uiAreaMouseEvent *);
+struct uiAreaEventHandler {
+	void (*MouseEvent)(uiAreaEventHandler *, uiControl *, uiAreaMouseEvent *);
 	// TODO document that on first show if the mouse is already in the uiArea then one gets sent with left=0
 	// TODO what about when the area is hidden and then shown again?
-	void (*MouseCrossed)(uiAreaHandler *, uiArea *, int left);
-	void (*DragBroken)(uiAreaHandler *, uiArea *);
-	int (*KeyEvent)(uiAreaHandler *, uiArea *, uiAreaKeyEvent *);
+	void (*MouseCrossed)(uiAreaEventHandler *, uiControl *, int left);
+	void (*DragBroken)(uiAreaEventHandler *, uiControl *);
+	int (*KeyEvent)(uiAreaEventHandler *, uiControl *, uiAreaKeyEvent *);
+};
+
+struct uiAreaHandler {
+	uiAreaEventHandler eh;
+	void (*Draw)(uiAreaHandler *, uiArea *, uiAreaDrawParams *);
+	// TODO document that resizes cause a full redraw for non-scrolling areas; implementation-defined for scrolling areas
 };
 
 #define uiArea(this) ((uiArea *) (this))
@@ -607,6 +612,74 @@ _UI_EXTERN void uiColorButtonColor(uiColorButton *b, double *r, double *g, doubl
 _UI_EXTERN void uiColorButtonSetColor(uiColorButton *b, double r, double g, double bl, double a);
 _UI_EXTERN void uiColorButtonOnChanged(uiColorButton *b, void (*f)(uiColorButton *, void *), void *data);
 _UI_EXTERN uiColorButton *uiNewColorButton(void);
+
+typedef struct uiOpenGLArea uiOpenGLArea;
+typedef struct uiOpenGLAreaHandler uiOpenGLAreaHandler;
+typedef struct uiOpenGLAttributes uiOpenGLAttributes;
+
+struct uiOpenGLAreaHandler {
+	uiAreaEventHandler eh;
+    void (*InitGL)(uiOpenGLAreaHandler *, uiOpenGLArea *);
+    void (*DrawGL)(uiOpenGLAreaHandler *, uiOpenGLArea *);
+};
+
+#define uiOpenGLArea(this) ((uiOpenGLArea *) (this))
+
+_UI_EXTERN void uiOpenGLAreaGetSize(uiOpenGLArea *a, int *width, int *height);
+_UI_EXTERN void uiOpenGLAreaSetSwapInterval(uiOpenGLArea *a, int si);
+_UI_EXTERN void uiOpenGLAreaQueueRedrawAll(uiOpenGLArea *a);
+_UI_EXTERN void uiOpenGLAreaMakeCurrent(uiOpenGLArea *a);
+_UI_EXTERN void uiOpenGLAreaSwapBuffers(uiOpenGLArea *a);
+_UI_EXTERN uiOpenGLArea *uiNewOpenGLArea(uiOpenGLAreaHandler *ah, uiOpenGLAttributes *attribs);
+
+_UI_ENUM(uiOpenGLAttribute) {
+    // Desired bit depths of the default framebuffer (integer number of bits).
+    uiOpenGLAttributeRedBits,
+    uiOpenGLAttributeGreenBits,
+    uiOpenGLAttributeBlueBits,
+    uiOpenGLAttributeAlphaBits,
+    uiOpenGLAttributeDepthBits,
+    uiOpenGLAttributeStencilBits,
+
+    // Stereoscopic rendering (boolean, 0 or 1).
+    uiOpenGLAttributeStereo,
+
+    // Number of samples to use for multisampling (integer number of samples).
+    uiOpenGLAttributeSamples,
+
+    // Whether the framebuffer should be sRGB capable (boolean, 0 or 1).
+    uiOpenGLAttributeSRGBCapable,
+
+    // Whether the framebuffer should be double-buffered (boolean, 0 or 1).
+    uiOpenGLAttributeDoubleBuffer,
+
+    // Whether to use OpenGL ES; if false, OpenGL is used (0 or 1).
+    uiOpenGLAttributeUseOpenGLES,
+
+    // Major and minor versions of OpenGL/OpenGL ES (integer version number).
+    uiOpenGLAttributeMajorVersion,
+    uiOpenGLAttributeMinorVersion,
+
+    // Whether the OpenGL context should be forward-compatible, with no deprecated functionality;
+    // OpenGL 3.0+ only (boolean, 0 or 1)
+    uiOpenGLAttributeForwardCompat,
+
+    // Whether to create a debug context (boolean, 0 or 1)
+    uiOpenGLAttributeDebugContext,
+
+    // Whether to use the Compatibility Profile; if false, the Core Profile is used (boolean, 0 or
+    // 1)
+    uiOpenGLAttributeCompatProfile,
+
+    // Whether to use Robustness (boolean, 0 or 1).
+    uiOpenGLAttributeRobustness,
+};
+
+#define uiOpenGLDontCare (-1)
+
+_UI_EXTERN uiOpenGLAttributes *uiNewOpenGLAttributes();
+_UI_EXTERN void uiFreeOpenGLAttributes(uiOpenGLAttributes *attribs);
+_UI_EXTERN void uiOpenGLAttributesSetAttribute(uiOpenGLAttributes *attribs, uiOpenGLAttribute attribute, int value);
 
 #ifdef __cplusplus
 }

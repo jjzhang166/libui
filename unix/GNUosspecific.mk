@@ -18,5 +18,5 @@ NATIVE_UI_CFLAGS = \
 NATIVE_UI_CXXFLAGS = \
 	`pkg-config --cflags gtk+-3.0`
 NATIVE_UI_LDFLAGS = \
-	`pkg-config --libs gtk+-3.0` -lm -ldl
+	`pkg-config --libs gtk+-3.0` -lm -ldl -lX11 -lGL -pthread
 

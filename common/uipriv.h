@@ -53,6 +53,27 @@ extern void fallbackSkew(uiDrawMatrix *, double, double, double, double);
 extern void scaleCenter(double, double, double *, double *);
 extern void fallbackTransformSize(uiDrawMatrix *, double *, double *);
 
+// opengl.c
+struct uiOpenGLAttributes {
+	int RedBits;
+	int GreenBits;
+	int BlueBits;
+	int AlphaBits;
+	int DepthBits;
+	int StencilBits;
+	int Stereo;
+	int Samples;
+	int SRGBCapable;
+	int DoubleBuffer;
+	int UseOpenGLES;
+	int MajorVersion;
+	int MinorVersion;
+	int ForwardCompat;
+	int DebugContext;
+	int CompatProfile;
+	int Robustness;
+};
+
 #ifdef __cplusplus
 }
 #endif

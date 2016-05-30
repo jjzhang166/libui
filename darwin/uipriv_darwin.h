@@ -87,6 +87,11 @@ extern void mapReset(struct mapTable *m);
 extern int sendAreaEvents(NSEvent *);
 
 // areaevents.m
+@protocol areaKeyHandler
+- (int)doKeyDownUp:(NSEvent *)e up:(BOOL)up;
+- (int)doFlagsChanged:(NSEvent *)e;
+@end
+
 extern BOOL fromKeycode(unsigned short keycode, uiAreaKeyEvent *ke);
 extern BOOL keycodeModifier(unsigned short keycode, uiModifiers *mod);
 
@@ -120,3 +125,37 @@ struct scrollViewData;
 extern NSScrollView *mkScrollView(struct scrollViewCreateParams *p, struct scrollViewData **dout);
 extern void scrollViewSetScrolling(NSScrollView *sv, struct scrollViewData *d, BOOL hscroll, BOOL vscroll);
 extern void scrollViewFreeData(NSScrollView *sv, struct scrollViewData *d);
+
+// areaeventhandler.m
+@interface areaEventHandler : NSObject {
+	uiAreaEventHandler *eh;
+	BOOL libui_enabled;
+}
+
+- (uiModifiers)parseModifiers:(NSEvent *)e;
+- (uiAreaMouseEvent)doMouseEvent:(NSEvent *)e inView:(NSView *)view scrolling:(BOOL)scrolling;
+- (BOOL)doKeyDownUp:(NSEvent *)e up:(BOOL)up keyEvent:(uiAreaKeyEvent *)ke;
+- (BOOL)doFlagsChanged:(NSEvent *)e keyEvent:(uiAreaKeyEvent *)ke;
+- (void)updateTrackingAreaForView:(NSView *)view;
+extern int sendAreaEvents(NSEvent *);
+
+@end
+
+#define uiImplMouseEvent(name) \
+	- (void)name:(NSEvent *)e \
+	{ \
+		[self doMouseEvent:e]; \
+	}
+
+#define uiImplMouseEvents \
+	uiImplMouseEvent(mouseMoved) \
+	uiImplMouseEvent(mouseDragged) \
+	uiImplMouseEvent(rightMouseDragged) \
+	uiImplMouseEvent(otherMouseDragged) \
+	uiImplMouseEvent(mouseDown) \
+	uiImplMouseEvent(rightMouseDown) \
+	uiImplMouseEvent(otherMouseDown) \
+	uiImplMouseEvent(mouseUp) \
+	uiImplMouseEvent(rightMouseUp) \
+	uiImplMouseEvent(otherMouseUp)
+

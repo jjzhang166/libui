@@ -16,5 +16,6 @@ SONAMEFLAG = -Wl,-install_name,@rpath/
 NATIVE_UI_LDFLAGS += \
 	-lobjc \
 	-framework Foundation \
-	-framework AppKit
+	-framework AppKit \
+	-framework OpenGL
 

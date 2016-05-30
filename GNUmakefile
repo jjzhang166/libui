@@ -70,6 +70,7 @@ examples:
 	@$(MAKE) -f GNUmakefile example EXAMPLE=controlgallery 
 	@$(MAKE) -f GNUmakefile example EXAMPLE=histogram
 	@$(MAKE) -f GNUmakefile example EXAMPLE=cpp-multithread
+	@$(MAKE) -f GNUmakefile example EXAMPLE=opengl
 
 .PHONY: examples
 

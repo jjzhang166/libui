@@ -3,6 +3,7 @@
 MFILES += \
 	darwin/alloc.m \
 	darwin/area.m \
+	darwin/areaeventhandler.m \
 	darwin/areaevents.m \
 	darwin/autolayout.m \
 	darwin/box.m \
@@ -24,6 +25,7 @@ MFILES += \
 	darwin/map.m \
 	darwin/menu.m \
 	darwin/multilineentry.m \
+	darwin/openglarea.m \
 	darwin/progressbar.m \
 	darwin/radiobuttons.m \
 	darwin/scrollview.m \

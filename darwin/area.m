@@ -4,21 +4,16 @@
 // 10.8 fixups
 #define NSEventModifierFlags NSUInteger
 
-@interface areaView : NSView {
+@interface areaView : NSView<areaKeyHandler> {
 	uiArea *libui_a;
-	NSTrackingArea *libui_ta;
 	NSSize libui_ss;
 	BOOL libui_enabled;
 }
 - (id)initWithFrame:(NSRect)r area:(uiArea *)a;
-- (uiModifiers)parseModifiers:(NSEvent *)e;
 - (void)doMouseEvent:(NSEvent *)e;
 - (int)sendKeyEvent:(uiAreaKeyEvent *)ke;
-- (int)doKeyDownUp:(NSEvent *)e up:(int)up;
-- (int)doKeyDown:(NSEvent *)e;
-- (int)doKeyUp:(NSEvent *)e;
+- (int)doKeyDownUp:(NSEvent *)e up:(BOOL)up;
 - (int)doFlagsChanged:(NSEvent *)e;
-- (void)setupNewTrackingArea;
 - (void)setScrollingSize:(NSSize)s;
 - (BOOL)isEnabled;
 - (void)setEnabled:(BOOL)e;
@@ -31,6 +26,7 @@ struct uiArea {
 	areaView *area;
 	struct scrollViewData *d;
 	uiAreaHandler *ah;
+	areaEventHandler *eh;
 	BOOL scrolling;
 };
 
@@ -41,9 +37,10 @@ struct uiArea {
 	self = [super initWithFrame:r];
 	if (self) {
 		self->libui_a = a;
-		[self setupNewTrackingArea];
 		self->libui_ss = r.size;
 		self->libui_enabled = YES;
+
+		[self->libui_a->eh updateTrackingAreaForView:self];
 	}
 	return self;
 }
@@ -86,154 +83,35 @@ struct uiArea {
 	return YES;
 }
 
-- (uiModifiers)parseModifiers:(NSEvent *)e
-{
-	NSEventModifierFlags mods;
-	uiModifiers m;
-
-	m = 0;
-	mods = [e modifierFlags];
-	if ((mods & NSControlKeyMask) != 0)
-		m |= uiModifierCtrl;
-	if ((mods & NSAlternateKeyMask) != 0)
-		m |= uiModifierAlt;
-	if ((mods & NSShiftKeyMask) != 0)
-		m |= uiModifierShift;
-	if ((mods & NSCommandKeyMask) != 0)
-		m |= uiModifierSuper;
-	return m;
-}
-
-- (void)setupNewTrackingArea
-{
-	self->libui_ta = [[NSTrackingArea alloc] initWithRect:[self bounds]
-		options:(NSTrackingMouseEnteredAndExited |
-			NSTrackingMouseMoved |
-			NSTrackingActiveAlways |
-			NSTrackingInVisibleRect |
-			NSTrackingEnabledDuringMouseDrag)
-		owner:self
-		userInfo:nil];
-	[self addTrackingArea:self->libui_ta];
-}
-
 - (void)updateTrackingAreas
 {
-	[self removeTrackingArea:self->libui_ta];
-	[self->libui_ta release];
-	[self setupNewTrackingArea];
+	uiArea *a = self->libui_a;
+	[a->eh updateTrackingAreaForView:self];
 }
 
 // capture on drag is done automatically on OS X
 - (void)doMouseEvent:(NSEvent *)e
 {
 	uiArea *a = self->libui_a;
-	uiAreaMouseEvent me;
-	NSPoint point;
-	uintmax_t buttonNumber;
-	NSUInteger pmb;
-	unsigned int i, max;
-
-	// this will convert point to drawing space
-	// thanks swillits in irc.freenode.net/#macdev
-	point = [self convertPoint:[e locationInWindow] fromView:nil];
-	me.X = point.x;
-	me.Y = point.y;
-
-	me.AreaWidth = 0;
-	me.AreaHeight = 0;
-	if (!a->scrolling) {
-		me.AreaWidth = [self frame].size.width;
-		me.AreaHeight = [self frame].size.height;
-	}
-
-	buttonNumber = [e buttonNumber] + 1;
-	// swap button numbers 2 and 3 (right and middle)
-	if (buttonNumber == 2)
-		buttonNumber = 3;
-	else if (buttonNumber == 3)
-		buttonNumber = 2;
-
-	me.Down = 0;
-	me.Up = 0;
-	me.Count = 0;
-	switch ([e type]) {
-	case NSLeftMouseDown:
-	case NSRightMouseDown:
-	case NSOtherMouseDown:
-		me.Down = buttonNumber;
-		me.Count = [e clickCount];
-		break;
-	case NSLeftMouseUp:
-	case NSRightMouseUp:
-	case NSOtherMouseUp:
-		me.Up = buttonNumber;
-		break;
-	case NSLeftMouseDragged:
-	case NSRightMouseDragged:
-	case NSOtherMouseDragged:
-		// we include the button that triggered the dragged event in the Held fields
-		buttonNumber = 0;
-		break;
-	}
-
-	me.Modifiers = [self parseModifiers:e];
-
-	pmb = [NSEvent pressedMouseButtons];
-	me.Held1To64 = 0;
-	if (buttonNumber != 1 && (pmb & 1) != 0)
-		me.Held1To64 |= 1;
-	if (buttonNumber != 2 && (pmb & 4) != 0)
-		me.Held1To64 |= 2;
-	if (buttonNumber != 3 && (pmb & 2) != 0)
-		me.Held1To64 |= 4;
-	// buttons 4..32
-	// https://developer.apple.com/library/mac/documentation/Carbon/Reference/QuartzEventServicesRef/index.html#//apple_ref/c/tdef/CGMouseButton says Quartz only supports up to 32 buttons
-	max = 32;
-	for (i = 4; i <= max; i++) {
-		uint64_t j;
-
-		if (buttonNumber == i)
-			continue;
-		j = 1 << (i - 1);
-		if ((pmb & j) != 0)
-			me.Held1To64 |= j;
-	}
-
+	uiAreaMouseEvent me = [a->eh doMouseEvent:e inView:self scrolling:a->scrolling];
 	if (self->libui_enabled)
-		(*(a->ah->MouseEvent))(a->ah, a, &me);
+		(*(a->ah->eh.MouseEvent))(&a->ah->eh, &a->c.c, &me);
 }
 
-#define mouseEvent(name) \
-	- (void)name:(NSEvent *)e \
-	{ \
-		[self doMouseEvent:e]; \
-	}
-mouseEvent(mouseMoved)
-mouseEvent(mouseDragged)
-mouseEvent(rightMouseDragged)
-mouseEvent(otherMouseDragged)
-mouseEvent(mouseDown)
-mouseEvent(rightMouseDown)
-mouseEvent(otherMouseDown)
-mouseEvent(mouseUp)
-mouseEvent(rightMouseUp)
-mouseEvent(otherMouseUp)
+uiImplMouseEvents
 
 - (void)mouseEntered:(NSEvent *)e
 {
 	uiArea *a = self->libui_a;
-
 	if (self->libui_enabled)
-		(*(a->ah->MouseCrossed))(a->ah, a, 0);
+		(*(a->ah->eh.MouseCrossed))(&a->ah->eh, &a->c.c, 0);
 }
 
 - (void)mouseExited:(NSEvent *)e
 {
 	uiArea *a = self->libui_a;
-
 	if (self->libui_enabled)
-		(*(a->ah->MouseCrossed))(a->ah, a, 1);
+		(*(a->ah->eh.MouseCrossed))(&a->ah->eh, &a->c.c, 1);
 }
 
 // note: there is no equivalent to WM_CAPTURECHANGED on Mac OS X; there literally is no way to break a grab like that
@@ -243,54 +121,24 @@ mouseEvent(otherMouseUp)
 - (int)sendKeyEvent:(uiAreaKeyEvent *)ke
 {
 	uiArea *a = self->libui_a;
-
-	return (*(a->ah->KeyEvent))(a->ah, a, ke);
+	return (*(a->ah->eh.KeyEvent))(&a->ah->eh, &a->c.c, ke);
 }
 
-- (int)doKeyDownUp:(NSEvent *)e up:(int)up
+- (int)doKeyDownUp:(NSEvent *)e up:(BOOL)up
 {
+	uiArea *a = self->libui_a;
 	uiAreaKeyEvent ke;
-
-	ke.Key = 0;
-	ke.ExtKey = 0;
-	ke.Modifier = 0;
-
-	ke.Modifiers = [self parseModifiers:e];
-
-	ke.Up = up;
-
-	if (!fromKeycode([e keyCode], &ke))
+	if (![a->eh doKeyDownUp:e up:up keyEvent:&ke])
 		return 0;
 	return [self sendKeyEvent:&ke];
 }
 
-- (int)doKeyDown:(NSEvent *)e
-{
-	return [self doKeyDownUp:e up:0];
-}
-
-- (int)doKeyUp:(NSEvent *)e
-{
-	return [self doKeyDownUp:e up:1];
-}
-
 - (int)doFlagsChanged:(NSEvent *)e
 {
+	uiArea *a = self->libui_a;
 	uiAreaKeyEvent ke;
-	uiModifiers whichmod;
-
-	ke.Key = 0;
-	ke.ExtKey = 0;
-
-	// Mac OS X sends this event on both key up and key down.
-	// Fortunately -[e keyCode] IS valid here, so we can simply map from key code to Modifiers, get the value of [e modifierFlags], and check if the respective bit is set or not — that will give us the up/down state
-	if (!keycodeModifier([e keyCode], &whichmod))
+	if (![a->eh doFlagsChanged:e keyEvent:&ke])
 		return 0;
-	ke.Modifier = whichmod;
-	ke.Modifiers = [self parseModifiers:e];
-	ke.Up = (ke.Modifiers & ke.Modifier) == 0;
-	// and then drop the current modifier from Modifiers
-	ke.Modifiers &= ~ke.Modifier;
 	return [self sendKeyEvent:&ke];
 }
 
@@ -351,36 +199,6 @@ static void uiAreaDestroy(uiControl *c)
 	uiFreeControl(uiControl(a));
 }
 
-// called by subclasses of -[NSApplication sendEvent:]
-// by default, NSApplication eats some key events
-// this prevents that from happening with uiArea
-// see http://stackoverflow.com/questions/24099063/how-do-i-detect-keyup-in-my-nsview-with-the-command-key-held and http://lists.apple.com/archives/cocoa-dev/2003/Oct/msg00442.html
-int sendAreaEvents(NSEvent *e)
-{
-	NSEventType type;
-	id focused;
-	areaView *view;
-
-	type = [e type];
-	if (type != NSKeyDown && type != NSKeyUp && type != NSFlagsChanged)
-		return 0;
-	focused = [[e window] firstResponder];
-	if (focused == nil)
-		return 0;
-	if (![focused isKindOfClass:[areaView class]])
-		return 0;
-	view = (areaView *) focused;
-	switch (type) {
-	case NSKeyDown:
-		return [view doKeyDown:e];
-	case NSKeyUp:
-		return [view doKeyUp:e];
-	case NSFlagsChanged:
-		return [view doFlagsChanged:e];
-	}
-	return 0;
-}
-
 void uiAreaSetSize(uiArea *a, intmax_t width, intmax_t height)
 {
 	if (!a->scrolling)
@@ -426,6 +244,8 @@ uiArea *uiNewScrollingArea(uiAreaHandler *ah, intmax_t width, intmax_t height)
 
 	a->ah = ah;
 	a->scrolling = YES;
+
+	a->eh = [[areaEventHandler alloc] init];
 
 	a->area = [[areaView alloc] initWithFrame:NSMakeRect(0, 0, width, height)
 		area:a];

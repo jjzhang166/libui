@@ -3,6 +3,7 @@
 CFILES += \
 	unix/alloc.c \
 	unix/area.c \
+	unix/areaeventhandler.c \
 	unix/box.c \
 	unix/button.c \
 	unix/checkbox.c \
@@ -25,6 +26,7 @@ CFILES += \
 	unix/main.c \
 	unix/menu.c \
 	unix/multilineentry.c \
+	unix/openglarea.c \
 	unix/progressbar.c \
 	unix/radiobuttons.c \
 	unix/separator.c \

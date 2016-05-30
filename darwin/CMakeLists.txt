@@ -5,6 +5,7 @@ include_directories(.. . ../common)
 add_library(libui-darwin OBJECT
 	alloc.m
 	area.m
+	areaeventhandler.m
 	areaevents.m
 	autolayout.m
 	box.m
@@ -26,6 +27,7 @@ add_library(libui-darwin OBJECT
 	map.m
 	menu.m
 	multilineentry.m
+	openglarea.m
 	progressbar.m
 	radiobuttons.m
 	scrollview.m
